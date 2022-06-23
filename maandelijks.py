@@ -2,13 +2,21 @@ from datetime import datetime
 from genericpath import exists
 import pywikibot
 
-SUMMARY = "Door robot automatisch aangemaakt maandoverzicht"
+SUMMARY = "Automatische aanmaak aan de hand van {{[[Sjabloon:%s|%s]]}}"
 
 class PageFromTemplate:
-    def __init__(self, title, text, summary) -> None:
+    """
+    In iedere template-gebaseerde aanmaak is in de titel te zien op welk
+    sjabloon het is gebaseerd:
+
+    >>> PageFromTemplate("Titel", "Tekst", "Sjabloonzandbak").summary
+    'Automatische aanmaak aan de hand van {{[[Sjabloon:Sjabloonzandbak|Sjabloonzandbak]]}}'
+    """
+
+    def __init__(self, title, text, template) -> None:
         self.title = title
         self.text = text
-        self.summary = summary
+        self.summary = SUMMARY % (template, template)
 
 class DeceasedThisMonth(PageFromTemplate):
     """
@@ -28,14 +36,16 @@ class DeceasedThisMonth(PageFromTemplate):
     """
 
     def __init__(self, now):
+        TEMPLATE = "Basis voor lijst van personen overleden in maand"
+
         maand = ["januari", "februari", "maart", "april", "mei", "juni",
                  "juli", "augustus", "september", "oktober", "november",
                  "december"][now.month - 1]
 
         pagename = f"Lijst van personen overleden in {maand} {now.year}"
-        text = "{{subst:Basis voor lijst van personen overleden in maand|%d|%d}}" % (now.year, now.month)
+        text = "{{subst:%s|%d|%d}}" % (TEMPLATE, now.year, now.month)
 
-        super().__init__(pagename, text, SUMMARY)
+        super().__init__(pagename, text, TEMPLATE)
 
 def main():
     template = DeceasedThisMonth(datetime.now())
