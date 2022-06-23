@@ -18,6 +18,28 @@ class PageFromTemplate:
         self.text = text
         self.summary = SUMMARY % (template, template)
 
+class Samenvoegen(PageFromTemplate):
+    """
+    De titel bevat het jaartal en de maand en verder niets:
+    >>> Samenvoegen(datetime(2023,12,4)).title
+    'Wikipedia:Samenvoegen/202312'
+
+    Enkelcijferige maanden krijgen een voorloopnul:
+    >>> Samenvoegen(datetime(2023,1,4)).title
+    'Wikipedia:Samenvoegen/202301'
+
+    De inhoud is simpelweg het gesubstitueerde sjabloon zonder argumenten:
+    >>> Samenvoegen(datetime(1234,5,6)).text
+    '{{subst:Samenvoegen nieuwe maand/Preload}}'
+    """
+    def __init__(self, now):
+        TEMPLATE = "Samenvoegen nieuwe maand/Preload"
+
+        pagename = f"Wikipedia:Samenvoegen/{now.year}{now.month:02d}"
+        text = "{{subst:%s}}" % TEMPLATE
+
+        super().__init__(pagename, text, TEMPLATE)
+
 class DeceasedThisMonth(PageFromTemplate):
     """
     De titel bevat het jaartal en de maand:
@@ -57,8 +79,11 @@ def handle_template(site, template):
         page.save(summary=template.summary, botflag=True)
 
 def main():
+    now = datetime.now()
+
     templates = [
-        DeceasedThisMonth(datetime.now()),
+        DeceasedThisMonth(now),
+        Samenvoegen(now),
     ]
 
     site = pywikibot.Site("nl", "wikipedia")
