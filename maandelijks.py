@@ -47,17 +47,24 @@ class DeceasedThisMonth(PageFromTemplate):
 
         super().__init__(pagename, text, TEMPLATE)
 
-def main():
-    template = DeceasedThisMonth(datetime.now())
-
-    site = pywikibot.Site("nl", "wikipedia")
+def handle_template(site, template):
     page = pywikibot.Page(site, template.title)
     
     if page.exists():
-        print(f"Niets gedaan want de pagina {template.title} bestond al")
+        print(f"Ik heb {template.title} overgeslagen want deze bestond al")
     else:
         page.text = template.text
         page.save(summary=template.summary, botflag=True)
+
+def main():
+    templates = [
+        DeceasedThisMonth(datetime.now()),
+    ]
+
+    site = pywikibot.Site("nl", "wikipedia")
+
+    for template in templates:
+        handle_template(site, template)
 
 if __name__ == '__main__':
     main()
