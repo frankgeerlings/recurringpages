@@ -81,6 +81,8 @@ def handle_template(site, template):
 def main():
     now = datetime.now()
 
+    print(f"Maandelijkse run van {now.isoformat()}")
+
     templates = [
         DeceasedThisMonth(now),
         Samenvoegen(now),
@@ -89,7 +91,10 @@ def main():
     site = pywikibot.Site("nl", "wikipedia")
 
     for template in templates:
-        handle_template(site, template)
+        try:
+            handle_template(site, template)
+        except BaseException as err:
+            print(f"Exception trad op: {err}, {type(err)}")
 
 if __name__ == '__main__':
     main()
