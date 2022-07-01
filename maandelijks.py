@@ -50,14 +50,10 @@ class DeceasedThisMonth(PageFromTemplate):
     >>> DeceasedThisMonth(datetime(2023,12,4)).title
     'Lijst van personen overleden in december 2023'
 
-    De maand en het jaartal worden als argumenten aan het te
-    substitueren sjabloon doorgegeven, en verder niets.
 
-    Zo kunnen wijzigingen in de code tot een minimum beperkt worden, de
-    meeste aanpassingen kunnen op de wiki worden uitgevoerd:
-
+    De inhoud is simpelweg het gesubstitueerde sjabloon zonder argumenten:
     >>> DeceasedThisMonth(datetime(2011,12,4)).text
-    '{{subst:Basis voor lijst van personen overleden in maand|2011|12}}'
+    '{{subst:Basis voor lijst van personen overleden in maand}}'
     """
 
     def __init__(self, now):
@@ -68,7 +64,7 @@ class DeceasedThisMonth(PageFromTemplate):
                  "december"][now.month - 1]
 
         pagename = f"Lijst van personen overleden in {maand} {now.year}"
-        text = "{{subst:%s|%d|%d}}" % (TEMPLATE, now.year, now.month)
+        text = "{{subst:%s}}" % TEMPLATE
 
         super().__init__(pagename, text, TEMPLATE)
 
