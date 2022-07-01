@@ -1,8 +1,10 @@
 from datetime import datetime
+from wikitable import Table
 from genericpath import exists
 import pywikibot
 
 SUMMARY = "Automatische aanmaak aan de hand van {{[[Sjabloon:%s|%s]]}}"
+SUMMARY_PAGENAME = "Gebruiker:Herhaalbot/Overzicht"
 
 class PageFromTemplate:
     """
@@ -16,6 +18,7 @@ class PageFromTemplate:
     def __init__(self, title, text, template) -> None:
         self.title = title
         self.text = text
+        self.template = template
         self.summary = SUMMARY % (template, template)
 
 class Samenvoegen(PageFromTemplate):
@@ -71,12 +74,35 @@ class DeceasedThisMonth(PageFromTemplate):
 
 def handle_template(site, template):
     page = pywikibot.Page(site, template.title)
+
+    summary_row = {
+        "interval": 'maandelijks',
+        "page": f"[[{template.title}]]",
+        "template": "{{tl|%s}}" % template.template,
+    }
     
     if page.exists():
         print(f"Ik heb {template.title} overgeslagen want deze bestond al")
     else:
         page.text = template.text
         page.save(summary=template.summary, botflag=True)
+
+    return summary_row
+
+def publish_summary(site: pywikibot.Site, pagename: str, summary):
+    CAPTION = "Overzicht van door Herhaalbot aangemaakte pagina's"
+
+    header_row = {
+        "interval": "Aanmaakfrequentie",
+        "page": "Meest recente in de reeks",
+        "template": "Op basis van sjabloon",
+    }
+
+    table = Table(header_row, summary, caption=CAPTION)
+
+    page = pywikibot.Page(site, pagename)
+    page.text = table.wikitext()
+    page.save(summary=CAPTION, botflag=True)
 
 def main():
     now = datetime.now()
@@ -88,13 +114,17 @@ def main():
         Samenvoegen(now),
     ]
 
+    summary_table = []
+
     site = pywikibot.Site("nl", "wikipedia")
 
     for template in templates:
         try:
-            handle_template(site, template)
+            summary_table.append(handle_template(site, template))
         except BaseException as err:
             print(f"Exception trad op: {err}, {type(err)}")
+
+    publish_summary(site, SUMMARY_PAGENAME, summary_table)
 
 if __name__ == '__main__':
     main()
