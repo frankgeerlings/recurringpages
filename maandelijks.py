@@ -1,4 +1,6 @@
 from datetime import datetime
+import inspect
+from dateutil.relativedelta import relativedelta
 from wikitable import Table
 from genericpath import exists
 import pywikibot
@@ -32,6 +34,43 @@ class PageFromTemplate:
             "interval": 'maandelijks',
             "page": f"[[{self.title}]]",
             "template": "{{tl|%s}}" % self.template,
+        }
+
+        return summary_row
+
+class SamenvoegenFooter:
+    def __init__(self, now) -> None:
+        self.description = f"''Zie broncode vanaf regel {inspect.getframeinfo(inspect.currentframe()).lineno}''"
+
+        current_month = self.__formatdate(now)
+        next_month = self.__formatdate(now + relativedelta(months=1))
+        self.summary = "Automatisch een nieuwe maand"
+        self.title = "Wikipedia:Samenvoegen"
+
+        self.__replace_footer = lambda text: text.replace("{{/footer|%s}}" % current_month, "{{/%s}}\n{{/footer|%s}}" % (current_month, next_month))
+
+    @staticmethod
+    def __formatdate(date: datetime) -> str:
+        return f"{date.year}{date.month:02d}"
+
+    def treat_page(self, page: pywikibot.Page) -> dict:
+        if not page.exists():
+            print(f'Ik kon {self.title} niet aanpassen want deze bestaat niet')
+            return None
+        else:
+            original = page.text
+            page.text = self.__replace_footer(page.text)
+
+            if(page.text == original):
+                print(f'Geen aanpassingen in {self.title} dus niet opgeslagen')
+                return None
+
+            page.save(summary=self.summary, botflag=True)
+
+        summary_row = {
+            "interval": 'maandelijks',
+            "page": f"[[{self.title}]]",
+            "template": self.description
         }
 
         return summary_row
@@ -99,7 +138,7 @@ def publish_summary(site: pywikibot.Site, pagename: str, summary):
         "template": "Op basis van sjabloon",
     }
 
-    table = Table(header_row, summary, caption=CAPTION)
+    table = Table(header_row, list(filter(None, summary)), caption=CAPTION)
 
     page = pywikibot.Page(site, pagename)
     page.text = table.wikitext()
@@ -113,6 +152,7 @@ def main():
     templates = [
         DeceasedThisMonth(now),
         Samenvoegen(now),
+        SamenvoegenFooter(now),
     ]
 
     summary_table = []
