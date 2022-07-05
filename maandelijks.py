@@ -21,6 +21,21 @@ class PageFromTemplate:
         self.template = template
         self.summary = SUMMARY % (template, template)
 
+    def treat_page(self, page: pywikibot.Page) -> dict:
+        if page.exists():
+            print(f"Ik heb {self.title} overgeslagen want deze bestond al")
+        else:
+            page.text = self.text
+            page.save(summary=self.summary, botflag=True)
+
+        summary_row = {
+            "interval": 'maandelijks',
+            "page": f"[[{self.title}]]",
+            "template": "{{tl|%s}}" % self.template,
+        }
+
+        return summary_row
+
 class Samenvoegen(PageFromTemplate):
     """
     De titel bevat het jaartal en de maand en verder niets:
@@ -68,28 +83,18 @@ class DeceasedThisMonth(PageFromTemplate):
 
         super().__init__(pagename, text, TEMPLATE)
 
-def handle_template(site, template):
+def handle_template(site, template: PageFromTemplate) -> dict:
     page = pywikibot.Page(site, template.title)
 
-    summary_row = {
-        "interval": 'maandelijks',
-        "page": f"[[{template.title}]]",
-        "template": "{{tl|%s}}" % template.template,
-    }
-    
-    if page.exists():
-        print(f"Ik heb {template.title} overgeslagen want deze bestond al")
-    else:
-        page.text = template.text
-        page.save(summary=template.summary, botflag=True)
+    summary_row = template.treat_page(page)
 
     return summary_row
 
 def publish_summary(site: pywikibot.Site, pagename: str, summary):
-    CAPTION = "Overzicht van door Herhaalbot aangemaakte pagina's"
+    CAPTION = "Overzicht van door Herhaalbot aangemaakte of aangepaste pagina's"
 
     header_row = {
-        "interval": "Aanmaakfrequentie",
+        "interval": "Herhalingsinterval",
         "page": "Meest recente in de reeks",
         "template": "Op basis van sjabloon",
     }
