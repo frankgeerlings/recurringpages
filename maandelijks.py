@@ -39,11 +39,11 @@ class PageFromTemplate:
         return summary_row
 
 class SamenvoegenFooter:
-    def __init__(self, now) -> None:
+    def __init__(self, dateforhandling) -> None:
         self.description = f"''Zie broncode vanaf regel {inspect.getframeinfo(inspect.currentframe()).lineno}''"
 
-        current_month = self.__formatdate(now)
-        next_month = self.__formatdate(now + relativedelta(months=1))
+        current_month = self.__formatdate(dateforhandling)
+        next_month = self.__formatdate(dateforhandling + relativedelta(months=1))
         self.summary = "Automatisch een nieuwe maand"
         self.title = "Wikipedia:Samenvoegen"
 
@@ -89,10 +89,10 @@ class Samenvoegen(PageFromTemplate):
     >>> Samenvoegen(datetime(1234,5,6)).text
     '{{subst:Samenvoegen nieuwe maand/Preload}}'
     """
-    def __init__(self, now):
+    def __init__(self, dateforhandling):
         TEMPLATE = "Samenvoegen nieuwe maand/Preload"
 
-        pagename = f"Wikipedia:Samenvoegen/{now.year}{now.month:02d}"
+        pagename = f"Wikipedia:Samenvoegen/{dateforhandling.year}{dateforhandling.month:02d}"
         text = "{{subst:%s}}" % TEMPLATE
 
         super().__init__(pagename, text, TEMPLATE)
@@ -104,20 +104,19 @@ class DeceasedThisMonth(PageFromTemplate):
     >>> DeceasedThisMonth(datetime(2023,12,4)).title
     'Lijst van personen overleden in december 2023'
 
-
     De inhoud is simpelweg het gesubstitueerde sjabloon zonder argumenten:
     >>> DeceasedThisMonth(datetime(2011,12,4)).text
     '{{subst:Basis voor lijst van personen overleden in maand}}'
     """
 
-    def __init__(self, now):
+    def __init__(self, dateforhandling):
         TEMPLATE = "Basis voor lijst van personen overleden in maand"
 
         maand = ["januari", "februari", "maart", "april", "mei", "juni",
                  "juli", "augustus", "september", "oktober", "november",
-                 "december"][now.month - 1]
+                 "december"][dateforhandling.month - 1]
 
-        pagename = f"Lijst van personen overleden in {maand} {now.year}"
+        pagename = f"Lijst van personen overleden in {maand} {dateforhandling.year}"
         text = "{{subst:%s}}" % TEMPLATE
 
         super().__init__(pagename, text, TEMPLATE)
@@ -146,13 +145,17 @@ def publish_summary(site: pywikibot.Site, pagename: str, summary):
 
 def main():
     now = datetime.now()
+    dateforhandling = now + relativedelta(days=1)
+    if now.month == dateforhandling.month:
+      print(f"{now.isoformat()} is niet de laatste dag van de maand")
+      exit()
 
     print(f"Maandelijkse run van {now.isoformat()}")
 
     templates = [
-        DeceasedThisMonth(now),
-        Samenvoegen(now),
-        SamenvoegenFooter(now),
+        DeceasedThisMonth(dateforhandling),
+        Samenvoegen(dateforhandling),
+        SamenvoegenFooter(dateforhandling),
     ]
 
     summary_table = []
