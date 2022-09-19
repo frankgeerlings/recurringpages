@@ -121,6 +121,19 @@ class DeceasedThisMonth(PageFromTemplate):
 
         super().__init__(pagename, text, TEMPLATE)
 
+class ThisMonth(PageFromTemplate):
+    def __init__(self, dateforhandling):
+        TEMPLATE = "Basis voor maand jaar"
+
+        maand = ["Januari", "Februari", "Maart", "April", "Mei", "Juni",
+                 "Juli", "Augustus", "September", "Oktober", "November",
+                 "December"][dateforhandling.month - 1]
+
+        pagename = f"{maand} {dateforhandling.year}"
+        text = "{{subst:%s}}" % TEMPLATE
+
+        super().__init__(pagename, text, TEMPLATE)
+
 def handle_template(site, template: PageFromTemplate) -> dict:
     page = pywikibot.Page(site, template.title)
 
@@ -156,6 +169,7 @@ def main():
         DeceasedThisMonth(dateforhandling),
         Samenvoegen(dateforhandling),
         SamenvoegenFooter(dateforhandling),
+        ThisMonth(dateforhandling),
     ]
 
     summary_table = []
