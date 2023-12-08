@@ -4,39 +4,11 @@ from dateutil.relativedelta import relativedelta
 from wikitable import Table
 from genericpath import exists
 import pywikibot
+from pagebuilder import PageFromTemplate
+from tasks import find_tasks
 
-SUMMARY = "Automatische aanmaak aan de hand van {{[[Sjabloon:%s|%s]]}}"
 SUMMARY_PAGENAME = "Gebruiker:Herhaalbot/Overzicht"
-
-class PageFromTemplate:
-    """
-    In iedere template-gebaseerde aanmaak is in de titel te zien op welk
-    sjabloon het is gebaseerd:
-
-    >>> PageFromTemplate("Titel", "Tekst", "Sjabloonzandbak").summary
-    'Automatische aanmaak aan de hand van {{[[Sjabloon:Sjabloonzandbak|Sjabloonzandbak]]}}'
-    """
-
-    def __init__(self, title, text, template) -> None:
-        self.title = title
-        self.text = text
-        self.template = template
-        self.summary = SUMMARY % (template, template)
-
-    def treat_page(self, page: pywikibot.Page) -> dict:
-        if page.exists():
-            print(f"Ik heb {self.title} overgeslagen want deze bestond al")
-        else:
-            page.text = self.text
-            page.save(summary=self.summary, botflag=True)
-
-        summary_row = {
-            "interval": 'maandelijks',
-            "page": f"[[{self.title}]]",
-            "template": "{{tl|%s}}" % self.template,
-        }
-
-        return summary_row
+TASKS_PAGENAME = "Gebruiker:Herhaalbot/Opdrachten"
 
 class SamenvoegenFooter:
     def __init__(self, dateforhandling) -> None:
@@ -75,65 +47,6 @@ class SamenvoegenFooter:
 
         return summary_row
 
-class Samenvoegen(PageFromTemplate):
-    """
-    De titel bevat het jaartal en de maand en verder niets:
-    >>> Samenvoegen(datetime(2023,12,4)).title
-    'Wikipedia:Samenvoegen/202312'
-
-    Enkelcijferige maanden krijgen een voorloopnul:
-    >>> Samenvoegen(datetime(2023,1,4)).title
-    'Wikipedia:Samenvoegen/202301'
-
-    De inhoud is simpelweg het gesubstitueerde sjabloon zonder argumenten:
-    >>> Samenvoegen(datetime(1234,5,6)).text
-    '{{subst:Samenvoegen nieuwe maand/Preload}}'
-    """
-    def __init__(self, dateforhandling):
-        TEMPLATE = "Samenvoegen nieuwe maand/Preload"
-
-        pagename = f"Wikipedia:Samenvoegen/{dateforhandling.year}{dateforhandling.month:02d}"
-        text = "{{subst:%s}}" % TEMPLATE
-
-        super().__init__(pagename, text, TEMPLATE)
-
-class DeceasedThisMonth(PageFromTemplate):
-    """
-    De titel bevat het jaartal en de maand:
-
-    >>> DeceasedThisMonth(datetime(2023,12,4)).title
-    'Lijst van personen overleden in december 2023'
-
-    De inhoud is simpelweg het gesubstitueerde sjabloon zonder argumenten:
-    >>> DeceasedThisMonth(datetime(2011,12,4)).text
-    '{{subst:Basis voor lijst van personen overleden in maand}}'
-    """
-
-    def __init__(self, dateforhandling):
-        TEMPLATE = "Basis voor lijst van personen overleden in maand"
-
-        maand = ["januari", "februari", "maart", "april", "mei", "juni",
-                 "juli", "augustus", "september", "oktober", "november",
-                 "december"][dateforhandling.month - 1]
-
-        pagename = f"Lijst van personen overleden in {maand} {dateforhandling.year}"
-        text = "{{subst:%s}}" % TEMPLATE
-
-        super().__init__(pagename, text, TEMPLATE)
-
-class ThisMonth(PageFromTemplate):
-    def __init__(self, dateforhandling):
-        TEMPLATE = "Basis voor maand jaar"
-
-        maand = ["Januari", "Februari", "Maart", "April", "Mei", "Juni",
-                 "Juli", "Augustus", "September", "Oktober", "November",
-                 "December"][dateforhandling.month - 1]
-
-        pagename = f"{maand} {dateforhandling.year}"
-        text = "{{subst:%s}}" % TEMPLATE
-
-        super().__init__(pagename, text, TEMPLATE)
-
 def handle_template(site, template: PageFromTemplate) -> dict:
     page = pywikibot.Page(site, template.title)
 
@@ -165,16 +78,13 @@ def main():
 
     print(f"Maandelijkse run van {now.isoformat()}")
 
-    templates = [
-        DeceasedThisMonth(dateforhandling),
-        Samenvoegen(dateforhandling),
-        SamenvoegenFooter(dateforhandling),
-        ThisMonth(dateforhandling),
-    ]
+    site = pywikibot.Site("nl", "wikipedia")
+    tasks_page = pywikibot.Page(site, TASKS_PAGENAME)
+
+    # Doe alle gevonden opdrachten plus de hardcoded opdracht (die heeft custom code)
+    templates = list(find_tasks(site, tasks_page)) + [ SamenvoegenFooter(dateforhandling) ]
 
     summary_table = []
-
-    site = pywikibot.Site("nl", "wikipedia")
 
     for template in templates:
         try:
