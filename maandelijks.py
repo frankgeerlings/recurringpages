@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 from wikitable import Table
 from genericpath import exists
 import pywikibot
+import traceback
 from pagebuilder import PageFromTemplate
 from tasks import find_tasks
 
@@ -90,7 +91,8 @@ def main():
         try:
             summary_table.append(handle_template(site, template))
         except BaseException as err:
-            print(f"Exception trad op: {err}, {type(err)}")
+            trace = traceback.format_exc()
+            print(f"Exception trad op: {err}, {type(err)}\n{trace}")
 
     publish_summary(site, SUMMARY_PAGENAME, summary_table)
 
