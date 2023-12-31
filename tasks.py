@@ -5,14 +5,11 @@ import re
 from pagebuilder import PageFromTemplate
 
 def find_tasks(site, page):
-    code = mwparserfromhell.parse(page.text)
-    rows = code.filter_tags(matches = lambda node: node.tag == "td")
+    lines = page.text.splitlines()
+    rows = [(lines[i + 1][1:].strip(), lines[i + 2][1:].strip(), lines[i + 3][1:].strip()) for i in range(len(lines)) if lines[i] == '|-']
 
-    for interval_col, title_col, template_col in [tuple(rows[i:i+3]) for i in range(0, len(rows), 3)]:
-        title_mwcode = (title_col.contents.strip())
+    for interval_col, title_mwcode, tl in rows:
         title = site.expand_text(title_mwcode)
-
-        tl = template_col.contents.strip()
         template = re.match(r'{{(?:tl\|)?(.*?)}}', tl).groups()[0]
 
         yield PageFromTemplate(title, '{{subst:%s}}' % template, template)
@@ -31,7 +28,7 @@ def main():
     site = pywikibot.Site("nl", "wikipedia")
     page = pywikibot.Page(site, "Gebruiker:Herhaalbot/Opdrachten")
 
-    pprint(list(find_tasks(site, page)))
+    pprint(list([vars(i) for i in find_tasks(site, page)]))
 
 if __name__ == '__main__':
     main()
