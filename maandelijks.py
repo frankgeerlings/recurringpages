@@ -12,27 +12,27 @@ SUMMARY_PAGENAME = "Gebruiker:Herhaalbot/Overzicht"
 TASKS_PAGENAME = "Gebruiker:Herhaalbot/Opdrachten"
 
 class SamenvoegenFooter:
-    def __init__(self, dateforhandling) -> None:
+    def __init__(self) -> None:
         self.description = f"''Zie broncode vanaf regel {inspect.getframeinfo(inspect.currentframe()).lineno}''"
 
-        current_month = self.__formatdate(dateforhandling)
-        next_month = self.__formatdate(dateforhandling + relativedelta(months=1))
         self.summary = "Automatisch een nieuwe maand"
         self.title = "Wikipedia:Samenvoegen"
-
-        self.__replace_footer = lambda text: text.replace("{{/footer|%s}}" % current_month, "{{/%s}}\n{{/footer|%s}}" % (current_month, next_month))
 
     @staticmethod
     def __formatdate(date: datetime) -> str:
         return f"{date.year}{date.month:02d}"
 
-    def treat_page(self, page: pywikibot.Page) -> dict:
+    def treat_page(self, page: pywikibot.Page, dateforhandling: datetime) -> dict:
         if not page.exists():
             print(f'Ik kon {self.title} niet aanpassen want deze bestaat niet')
             return None
         else:
             original = page.text
-            page.text = self.__replace_footer(page.text)
+
+            current_month = self.__formatdate(dateforhandling)
+            next_month = self.__formatdate(dateforhandling + relativedelta(months=1))
+            replace_footer = lambda text: text.replace("{{/footer|%s}}" % current_month, "{{/%s}}\n{{/footer|%s}}" % (current_month, next_month))
+            page.text = replace_footer(page.text)
 
             if(page.text == original):
                 print(f'Geen aanpassingen in {self.title} dus niet opgeslagen')
@@ -48,10 +48,10 @@ class SamenvoegenFooter:
 
         return summary_row
 
-def handle_template(site, template: PageFromTemplate) -> dict:
+def handle_template(site, template: PageFromTemplate, dateforhandling: datetime) -> dict:
     page = pywikibot.Page(site, template.title)
 
-    summary_row = template.treat_page(page)
+    summary_row = template.treat_page(page, dateforhandling)
 
     return summary_row
 
@@ -83,13 +83,13 @@ def main():
     tasks_page = pywikibot.Page(site, TASKS_PAGENAME)
 
     # Doe alle gevonden opdrachten plus de hardcoded opdracht (die heeft custom code)
-    templates = list(find_tasks(site, tasks_page)) + [ SamenvoegenFooter(dateforhandling) ]
+    templates = list(find_tasks(site, tasks_page)) + [ SamenvoegenFooter() ]
 
     summary_table = []
 
     for template in templates:
         try:
-            summary_table.append(handle_template(site, template))
+            summary_table.append(handle_template(site, template, dateforhandling))
         except BaseException as err:
             trace = traceback.format_exc()
             print(f"Exception trad op: {err}, {type(err)}\n{trace}")
