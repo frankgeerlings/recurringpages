@@ -1,5 +1,4 @@
 import pywikibot
-import mwparserfromhell
 from pprint import pprint
 import re
 from pagebuilder import PageFromTemplate
